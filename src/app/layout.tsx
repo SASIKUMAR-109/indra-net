@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import CommanderAIAssistant from "@/components/CommanderAIAssistant";
 
 export const metadata: Metadata = {
   title: "INDRA NET – Sovereign Defense Digital Twin System | Government of India",
@@ -29,7 +30,7 @@ export default function RootLayout({
         <Sidebar />
         <main
           style={{
-            marginLeft: '260px',
+            marginLeft: '270px',
             minHeight: '100vh',
             overflowY: 'auto',
             color: '#EDE8D0',
@@ -37,6 +38,8 @@ export default function RootLayout({
         >
           {children}
         </main>
+        {/* Floating Commander AI Assistant — visible on all pages */}
+        <CommanderAIAssistant />
       </body>
     </html>
   );

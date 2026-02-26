@@ -28,10 +28,51 @@
   --red-alert: #FF4444;
   --amber: #E8820C;
 
+  /* ── New Military Palette ── */
+  --bg-dark: #0A0A0A;
+  --accent-cyan: #00F2FF;
+  --alert-red: #FF3131;
+  --olive-drab: #4B5320;
+  --coyote-brown: #827751;
+  --yellow-green: #9ACD32;
+
+  /* ── Indian Flag Colors ── */
+  --saffron: #FF9933;
+  --india-white: #FFFFFF;
+  --india-green: #138808;
+  --navy-blue: #000080;
+
   --sidebar-w: 270px;
   --radius: 10px;
   --radius-lg: 14px;
   --transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ═══════════════════════════════════════════════
+   GLASSMORPHISM
+═══════════════════════════════════════════════ */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+}
+
+.glass-panel-dark {
+  background: rgba(8, 12, 6, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(212, 160, 23, 0.2);
+  border-radius: var(--radius);
+}
+
+.glass-panel-cyan {
+  background: rgba(0, 242, 255, 0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  border-radius: var(--radius);
 }
 
 /* ═══════════════════════════════════════════════

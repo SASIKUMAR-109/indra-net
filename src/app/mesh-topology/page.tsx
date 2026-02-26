@@ -1,275 +1,328 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Network, AlertTriangle, RefreshCw, Radio, Activity } from 'lucide-react';
+import { Network, Wifi, AlertTriangle, BotIcon, Shield } from 'lucide-react';
 
-const NODE_COUNT = 14;
+const FREQS = ['433.1 MHz', '434.5 MHz', '436.0 MHz', '437.2 MHz', '438.7 MHz', '440.0 MHz'];
 
-function generateNodes(interference: number) {
-    const failedCount = Math.floor((interference / 100) * 6);
-    const pool = Array.from({ length: NODE_COUNT }, (_, i) => i);
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    const failedSet = new Set(shuffled.slice(0, failedCount));
-    return pool.map(i => ({ id: i, label: `N${String(i + 1).padStart(2, '0')}`, failed: failedSet.has(i) }));
+function mkNodes(count: number, W: number, H: number) {
+    return Array.from({ length: count }, (_, i) => ({
+        id: `N${String(i + 1).padStart(2, '0')}`,
+        x: 80 + Math.random() * (W - 160),
+        y: 80 + Math.random() * (H - 160),
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        status: i === 5 ? 'attacked' : i === 8 || i === 11 ? 'jammed' : 'active',
+        signal: 50 + Math.random() * 50,
+        battery: 60 + Math.random() * 40,
+    }));
 }
-function generateLinks(nodes: { id: number; failed: boolean }[]) {
-    const active = nodes.filter(n => !n.failed).map(n => n.id);
-    const links: { source: number; target: number }[] = [];
-    for (let i = 0; i < active.length - 1; i++) links.push({ source: active[i], target: active[i + 1] });
-    for (let i = 0; i < active.length; i++)
-        for (let j = i + 2; j < active.length; j++)
-            if (Math.random() > 0.6) links.push({ source: active[i], target: active[j] });
+
+function mkLinks(nodes: ReturnType<typeof mkNodes>) {
+    const links: { a: number; b: number }[] = [];
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+            if (Math.hypot(dx, dy) < 180) links.push({ a: i, b: j });
+        }
+    }
     return links;
 }
 
-function MeshGraph({ nodes, links }: { nodes: { id: number; label: string; failed: boolean }[]; links: { source: number; target: number }[] }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const animRef = useRef<number>(0);
-    const posRef = useRef<Map<number, { x: number; y: number; vx: number; vy: number }>>(new Map());
+const EVENTS = [
+    { ts: '18:33:01', msg: 'Node N06 joined mesh', type: 'info' },
+    { ts: '18:33:14', msg: 'FHSS hop → 433.1 MHz (jamming detected)', type: 'warn' },
+    { ts: '18:34:02', msg: 'N06 ATTACKED — neighbours forming shield', type: 'danger' },
+    { ts: '18:34:08', msg: 'AI PREDICTION: dead-zone in ~30s at N08', type: 'ai' },
+    { ts: '18:34:41', msg: 'Relay hop N03→N10→N14 established', type: 'info' },
+    { ts: '18:35:05', msg: 'N11 signal degraded — jammed zone', type: 'warn' },
+];
 
+export default function MeshTopologyPage() {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const W = 700, H = 520;
+    const [nodes, setNodes] = useState(() => mkNodes(14, W, H));
+    const [links] = useState(() => mkLinks(nodes));
+    const [interference, setInterference] = useState(0);
+    const [activeFreq, setActiveFreq] = useState(0);
+    const [tooltip, setTooltip] = useState<{ node: typeof nodes[0]; x: number; y: number } | null>(null);
+    const [ghostPulse, setGhostPulse] = useState(0);
+    const animRef = useRef<number>(0);
+    const nodesRef = useRef(nodes);
+    nodesRef.current = nodes;
+
+    // Ghost node (AI prediction)
+    const ghostNode = { x: W * 0.55, y: H * 0.38 };
+
+    // Frequency hop every 4s
+    useEffect(() => {
+        const iv = setInterval(() => setActiveFreq(f => (f + 1) % FREQS.length), 4000);
+        return () => clearInterval(iv);
+    }, []);
+
+    // Ghost pulse
+    useEffect(() => {
+        const iv = setInterval(() => setGhostPulse(p => (p + 1) % 100), 60);
+        return () => clearInterval(iv);
+    }, []);
+
+    // Physics
+    useEffect(() => {
+        const iv = setInterval(() => {
+            setNodes(prev => prev.map(n => {
+                let { x, y, vx, vy, status } = n;
+                const jam = (interference / 100) * 0.5;
+                if (status === 'attacked') return n;
+                vx += (Math.random() - 0.5) * 0.12;
+                vy += (Math.random() - 0.5) * 0.12;
+                // Randomly jam extra nodes
+                const nowJammed = Math.random() < jam && status !== 'jammed';
+                x = Math.max(50, Math.min(W - 50, x + vx));
+                y = Math.max(50, Math.min(H - 50, y + vy));
+                return { ...n, x, y, vx: vx * 0.97, vy: vy * 0.97, status: nowJammed ? 'jammed' : status };
+            }));
+        }, 40);
+        return () => clearInterval(iv);
+    }, [interference]);
+
+    // Canvas draw
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        const W = canvas.width, H = canvas.height;
 
-        nodes.forEach(n => {
-            if (!posRef.current.has(n.id)) {
-                const angle = (n.id / NODE_COUNT) * Math.PI * 2;
-                const r = Math.min(W, H) * 0.34;
-                posRef.current.set(n.id, { x: W / 2 + r * Math.cos(angle), y: H / 2 + r * Math.sin(angle), vx: 0, vy: 0 });
-            }
-        });
-
-        let t = 0;
         const draw = () => {
+            const ns = nodesRef.current;
             ctx.clearRect(0, 0, W, H);
-            t += 0.025;
 
-            posRef.current.forEach((pos, id) => {
-                posRef.current.forEach((other, otherId) => {
-                    if (otherId === id) return;
-                    const dx = pos.x - other.x, dy = pos.y - other.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const force = 900 / (dist * dist);
-                    pos.vx += (dx / dist) * force; pos.vy += (dy / dist) * force;
+            // Background grid
+            ctx.strokeStyle = 'rgba(36,51,24,0.2)'; ctx.lineWidth = 1;
+            for (let gx = 0; gx < W; gx += 40) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+            for (let gy = 0; gy < H; gy += 40) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+            // Links
+            links.forEach(({ a, b }) => {
+                const na = ns[a], nb = ns[b];
+                if (na.status === 'attacked' || nb.status === 'attacked') return;
+                const jammed = na.status === 'jammed' || nb.status === 'jammed';
+                ctx.beginPath();
+                ctx.moveTo(na.x, na.y); ctx.lineTo(nb.x, nb.y);
+                ctx.strokeStyle = jammed ? 'rgba(255,160,0,0.25)' : 'rgba(154,205,50,0.18)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // Cyan shield around attacked node's neighbors
+            const attacked = ns.find(n => n.status === 'attacked');
+            if (attacked) {
+                links.forEach(({ a, b }) => {
+                    const na = ns[a], nb = ns[b];
+                    const isNeighbor = (na.status === 'attacked' || nb.status === 'attacked') &&
+                        (na.status !== 'attacked' || nb.status !== 'attacked');
+                    if (!isNeighbor) return;
+                    const neighbor = na.status === 'attacked' ? nb : na;
+                    ctx.beginPath();
+                    ctx.arc(neighbor.x, neighbor.y, 22, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(0,242,255,${0.3 + Math.sin(Date.now() / 400) * 0.2})`;
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
                 });
-                pos.vx += (W / 2 - pos.x) * 0.003;
-                pos.vy += (H / 2 - pos.y) * 0.003;
-                pos.vx *= 0.84; pos.vy *= 0.84;
-                pos.x = Math.max(30, Math.min(W - 30, pos.x + pos.vx));
-                pos.y = Math.max(30, Math.min(H - 30, pos.y + pos.vy));
-            });
+            }
 
-            links.forEach(link => {
-                const s = posRef.current.get(link.source), tg = posRef.current.get(link.target);
-                if (!s || !tg) return;
-                const dx = tg.x - s.x, dy = tg.y - s.y;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1, ideal = 100, f = (dist - ideal) * 0.025;
-                s.vx += (dx / dist) * f; s.vy += (dy / dist) * f;
-                tg.vx -= (dx / dist) * f; tg.vy -= (dy / dist) * f;
-            });
+            // Ghost node (AI prediction)
+            const pulse = (ghostPulse / 100) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.arc(ghostNode.x, ghostNode.y, 14 + Math.sin(pulse) * 4, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0,242,255,${0.45 + Math.sin(pulse) * 0.25})`;
+            ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+            // Ghost inner
+            ctx.beginPath();
+            ctx.arc(ghostNode.x, ghostNode.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,242,255,0.3)'; ctx.fill();
+            // Ghost label
+            ctx.font = '10px JetBrains Mono'; ctx.fillStyle = '#00F2FF'; ctx.textAlign = 'center';
+            ctx.fillText('AI GHOST', ghostNode.x, ghostNode.y + 28);
 
-            /* Links */
-            links.forEach(link => {
-                const s = posRef.current.get(link.source), tg = posRef.current.get(link.target);
-                if (!s || !tg) return;
-                ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(tg.x, tg.y);
-                ctx.strokeStyle = `rgba(212,160,23,${0.14 + Math.abs(Math.sin(t)) * 0.09})`; ctx.lineWidth = 1.3; ctx.stroke();
-                const p = (Math.sin(t * 2 + link.source) + 1) / 2;
-                ctx.beginPath(); ctx.arc(s.x + (tg.x - s.x) * p, s.y + (tg.y - s.y) * p, 2.8, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(240,192,64,0.9)'; ctx.fill();
-            });
+            // Nodes
+            ns.forEach(n => {
+                const color = n.status === 'attacked' ? '#666' : n.status === 'jammed' ? '#E8820C' : '#D4A017';
+                const glow = n.status === 'attacked' ? 'rgba(100,100,100,0.3)' : n.status === 'jammed' ? 'rgba(232,130,12,0.4)' : 'rgba(212,160,23,0.4)';
 
-            /* Nodes */
-            nodes.forEach(n => {
-                const pos = posRef.current.get(n.id);
-                if (!pos) return;
-                const color = n.failed ? '#FF4444' : '#D4A017';
-                if (!n.failed) {
-                    const pulse = (Math.sin(t * 1.5 + n.id) + 1) / 2;
-                    ctx.beginPath(); ctx.arc(pos.x, pos.y, 12 + pulse * 10, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(212,160,23,${0.12 - pulse * 0.09})`; ctx.lineWidth = 1; ctx.stroke();
-                }
-                ctx.beginPath(); ctx.arc(pos.x, pos.y, 9, 0, Math.PI * 2);
-                ctx.fillStyle = n.failed ? 'rgba(255,68,68,0.2)' : 'rgba(212,160,23,0.18)'; ctx.fill();
+                // Node glow
+                const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 22);
+                grad.addColorStop(0, glow); grad.addColorStop(1, 'transparent');
+                ctx.beginPath(); ctx.arc(n.x, n.y, 22, 0, Math.PI * 2); ctx.fillStyle = grad; ctx.fill();
+
+                // Node circle
+                ctx.beginPath(); ctx.arc(n.x, n.y, 11, 0, Math.PI * 2);
+                ctx.fillStyle = `${color}22`; ctx.fill();
                 ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-                ctx.fillStyle = color; ctx.font = 'bold 9px JetBrains Mono, monospace'; ctx.textAlign = 'center';
-                ctx.fillText(n.label, pos.x, pos.y + 24);
+
+                // Inner dot
+                ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = color; ctx.fill();
+
+                // Label
+                ctx.font = 'bold 10px JetBrains Mono'; ctx.fillStyle = color; ctx.textAlign = 'center';
+                ctx.fillText(n.id, n.x, n.y - 18);
             });
 
             animRef.current = requestAnimationFrame(draw);
         };
-        animRef.current = requestAnimationFrame(draw);
+        draw();
         return () => cancelAnimationFrame(animRef.current);
-    }, [nodes, links]);
+    }, [links, ghostPulse]);
 
-    return <canvas ref={canvasRef} width={760} height={500} style={{ width: '100%', height: '100%', display: 'block' }} />;
-}
-
-export default function MeshTopologyPage() {
-    const [interference, setInterference] = useState(0);
-    const [nodes, setNodes] = useState(() => generateNodes(0));
-    const [links, setLinks] = useState<{ source: number; target: number }[]>([]);
-    const [freq, setFreq] = useState('433.5');
-    const [reroutes, setReroutes] = useState(0);
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-        const n = generateNodes(0); setNodes(n); setLinks(generateLinks(n));
+    const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+        const rect = canvasRef.current!.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (W / rect.width);
+        const my = (e.clientY - rect.top) * (H / rect.height);
+        const hit = nodesRef.current.find(n => Math.hypot(n.x - mx, n.y - my) < 14);
+        setTooltip(hit ? { node: hit, x: e.clientX - rect.left, y: e.clientY - rect.top } : null);
     }, []);
 
-    const rebuild = useCallback((val: number) => {
-        const n = generateNodes(val); setNodes(n); setLinks(generateLinks(n));
-        setReroutes(r => r + 1);
-        setFreq((433.5 + (val / 100) * 2.5).toFixed(1));
-    }, []);
-
-    const failed = nodes.filter(n => n.failed).length;
-    const active = nodes.filter(n => !n.failed).length;
+    const activeCount = nodes.filter(n => n.status === 'active').length;
+    const jammedCount = nodes.filter(n => n.status === 'jammed').length;
+    const attackedCount = nodes.filter(n => n.status === 'attacked').length;
 
     return (
         <div className="page-wrap">
-
-            {/* Hero */}
             <div className="page-hero scanline">
                 <img src="/army_backdrop.png" alt="Mesh Topology" className="page-hero__img" />
                 <div className="page-hero__overlay" />
                 <div className="page-hero__content">
                     <div className="page-hero__eyebrow">
                         <div className="hero-dot gold" />
-                        <span className="hero-eyebrow-text">TACTICAL MESH · SELF-HEALING NETWORK</span>
+                        <span className="hero-eyebrow-text">STEP 3 · MESH TOPOLOGY ENGINE · SOVEREIGN SHIELD</span>
                     </div>
-                    <h1 className="page-hero__title">Mesh <span className="gold">Topology</span> Engine</h1>
-                    <p className="page-hero__sub">Self-healing TDMA mesh · Frequency-hopping spread spectrum</p>
+                    <h1 className="page-hero__title">Mesh <span className="gold">Topology</span></h1>
+                    <p className="page-hero__sub">Soldier mesh · Ghost node AI prediction · Attack isolation · Cyan Shield</p>
                 </div>
             </div>
 
             <div className="content-wrap">
-
-                {/* KPI bar */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '22px' }}>
+                {/* KPI Bar */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '20px' }}>
                     {[
-                        { label: 'ACTIVE NODES', value: active, color: '#D4A017' },
-                        { label: 'FAILED NODES', value: failed, color: failed > 0 ? '#FF4444' : '#39F07A' },
-                        { label: 'NETWORK LINKS', value: links.length, color: '#8DB05A' },
-                        { label: 'PATH REROUTES', value: reroutes, color: '#39F07A' },
-                    ].map((s, i) => (
-                        <motion.div key={s.label} className="kpi-card"
-                            initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-                            <div className="kpi-value" style={{ color: s.color }}>{s.value}</div>
-                            <div className="kpi-label">{s.label}</div>
-                        </motion.div>
+                        { label: 'ACTIVE NODES', val: activeCount, col: '#9ACD32' },
+                        { label: 'JAMMED ZONES', val: jammedCount, col: '#E8820C' },
+                        { label: 'ATTACKED', val: attackedCount, col: '#FF3131' },
+                        { label: 'LINKS ACTIVE', val: links.filter(({ a, b }) => nodes[a].status !== 'attacked' && nodes[b].status !== 'attacked').length, col: '#D4A017' },
+                    ].map(k => (
+                        <div key={k.label} className="kpi-card" style={{ borderColor: `${k.col}30` }}>
+                            <div className="kpi-value" style={{ color: k.col, fontSize: '2rem' }}>{k.val}</div>
+                            <div className="kpi-label">{k.label}</div>
+                        </div>
                     ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '22px' }}>
-
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '18px' }}>
                     {/* Canvas */}
-                    <motion.div className="panel-gold"
-                        initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }}
-                        style={{ height: '520px', position: 'relative', overflow: 'hidden', padding: 0 }}>
-                        <div style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 10, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Network size={14} color="#D4A017" />
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#D4A017', letterSpacing: '2px' }}>LIVE MESH TOPOLOGY</span>
+                    <div className="panel" style={{ position: 'relative', padding: '0', overflow: 'hidden' }}>
+                        <canvas ref={canvasRef} width={W} height={H} style={{ width: '100%', height: 'auto', cursor: 'crosshair', display: 'block' }} onClick={handleCanvasClick} />
+
+                        {/* AI Ghost Popup */}
+                        <div className="glass-panel-cyan" style={{ position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)', padding: '9px 16px', display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
+                            <BotIcon size={13} color="#00F2FF" />
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#00F2FF' }}>
+                                AI PREDICTION: Possible dead-zone in ~30s · Suggesting relay hop
+                            </span>
                         </div>
-                        <div style={{ position: 'absolute', top: '14px', right: '14px', zIndex: 10 }}>
-                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#D4A017', animation: 'pulseDot 2s infinite' }} />
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#D4A017' }}>RENDERING</span>
-                            </div>
-                        </div>
-                        {mounted && <MeshGraph nodes={nodes} links={links} />}
-                    </motion.div>
+
+                        {/* Node Tooltip */}
+                        <AnimatePresence>
+                            {tooltip && (
+                                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                                    className="glass-panel-dark" style={{ position: 'absolute', left: tooltip.x + 12, top: tooltip.y - 10, padding: '10px 14px', pointerEvents: 'none', minWidth: '160px' }}>
+                                    <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '14px', color: '#D4A017', marginBottom: '6px' }}>{tooltip.node.id}</div>
+                                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', lineHeight: 1.7 }}>
+                                        <div>Status: <span style={{ color: tooltip.node.status === 'active' ? '#9ACD32' : '#FF3131' }}>{tooltip.node.status.toUpperCase()}</span></div>
+                                        <div>Signal: {tooltip.node.signal.toFixed(0)} dBm</div>
+                                        <div>Battery: {tooltip.node.battery.toFixed(0)}%</div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     {/* Controls */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-                        {/* Interference */}
-                        <motion.div className="panel" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                                <AlertTriangle size={14} color="#FF4444" />
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '1.5px' }}>TACTICAL INTERFERENCE</span>
-                            </div>
-                            <input type="range" min={0} max={100} value={interference}
-                                onChange={e => { setInterference(Number(e.target.value)); rebuild(Number(e.target.value)); }}
-                                style={{
-                                    width: '100%', height: '5px', appearance: 'none',
-                                    borderRadius: '3px', cursor: 'pointer', accentColor: '#FF4444',
-                                    background: `linear-gradient(to right, #FF4444 ${interference}%, rgba(36,51,24,0.8) ${interference}%)`
-                                }}
-                            />
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#2A3D1A' }}>0%</span>
-                                <span style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: '#FF4444', fontWeight: 700 }}>{interference}%</span>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#2A3D1A' }}>100%</span>
-                            </div>
-                            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', marginTop: '10px', lineHeight: 1.6 }}>
-                                {interference === 0 ? '✅ All nodes active · No interference' :
-                                    interference < 40 ? '🟡 Low interference · Network stable' :
-                                        interference < 70 ? '🟠 Moderate · Rerouting paths...' : '🔴 High interference · Emergency protocol'}
-                            </p>
-                        </motion.div>
+                        {/* Legend */}
+                        <div className="panel">
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '2px', display: 'block', marginBottom: '10px' }}>LEGEND</span>
+                            {[
+                                { color: '#D4A017', label: 'Active Node (Gold)' },
+                                { color: '#E8820C', label: 'Jammed Zone (Amber)' },
+                                { color: '#666666', label: 'Attacked (Isolated)' },
+                                { color: '#00F2FF', label: 'Cyan Shield (Defense)' },
+                                { color: '#00F2FF', label: 'AI Ghost Node (Prediction)', dashed: true },
+                            ].map(l => (
+                                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '7px' }}>
+                                    <svg width="20" height="14">
+                                        {l.dashed
+                                            ? <circle cx="10" cy="7" r="5" stroke={l.color} strokeWidth="1.5" strokeDasharray="3,2" fill="none" />
+                                            : <circle cx="10" cy="7" r="5" fill={l.color + '30'} stroke={l.color} strokeWidth="1.5" />}
+                                    </svg>
+                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A' }}>{l.label}</span>
+                                </div>
+                            ))}
+                        </div>
 
-                        {/* Frequency */}
-                        <motion.div className="panel" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 }}>
+                        {/* Interference Slider */}
+                        <div className="panel">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <div style={{ display: 'flex', gap: '7px', alignItems: 'center' }}>
+                                    <Wifi size={13} color="#E8820C" />
+                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '1.5px' }}>JAMMING LEVEL</span>
+                                </div>
+                                <span style={{ fontFamily: 'Orbitron, monospace', fontSize: '18px', fontWeight: 700, color: '#E8820C' }}>{interference}%</span>
+                            </div>
+                            <input type="range" min={0} max={80} value={interference} onChange={e => setInterference(+e.target.value)}
+                                style={{ width: '100%', accentColor: '#E8820C' }} />
+                        </div>
+
+                        {/* Frequency Hopping */}
+                        <div className="panel">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                                <Radio size={13} color="#D4A017" />
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '1.5px' }}>FREQUENCY HOPPING</span>
+                                <Shield size={13} color="#D4A017" />
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '1.5px' }}>FHSS · FREQUENCY HOP</span>
                             </div>
-                            <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '24px', fontWeight: 700, color: '#D4A017', textShadow: '0 0 12px rgba(212,160,23,0.5)' }}>
-                                {freq} MHz
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {FREQS.map((f, i) => (
+                                    <div key={f} style={{
+                                        padding: '6px 10px', borderRadius: '6px', fontSize: '10px',
+                                        fontFamily: 'JetBrains Mono, monospace',
+                                        background: i === activeFreq ? 'rgba(154,205,50,0.12)' : 'rgba(36,51,24,0.4)',
+                                        border: `1px solid ${i === activeFreq ? 'rgba(154,205,50,0.5)' : 'rgba(36,51,24,0.5)'}`,
+                                        color: i === activeFreq ? '#9ACD32' : '#4A6A2A',
+                                        boxShadow: i === activeFreq ? '0 0 10px rgba(154,205,50,0.25)' : 'none',
+                                        transition: 'all 0.3s',
+                                    }}>
+                                        {f} {i === activeFreq && '●'}
+                                    </div>
+                                ))}
                             </div>
-                            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', marginTop: '5px' }}>FHSS · 125 hops/sec · AES keyed</p>
-                            <div style={{ display: 'flex', gap: '4px', marginTop: '12px' }}>
-                                {[433.5, 433.8, 434.1, 434.4, 434.7].map(f => {
-                                    const isActive = Math.abs(parseFloat(freq) - f) < 0.2;
-                                    return (
-                                        <div key={f} style={{
-                                            flex: 1, height: '28px', borderRadius: '5px',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontFamily: 'JetBrains Mono, monospace', fontSize: '8px',
-                                            background: isActive ? 'rgba(212,160,23,0.2)' : 'rgba(8,12,6,0.8)',
-                                            border: `1px solid ${isActive ? 'rgba(212,160,23,0.5)' : 'rgba(36,51,24,0.6)'}`,
-                                            color: isActive ? '#D4A017' : '#2A3D1A',
-                                            transition: 'all 0.3s',
-                                            boxShadow: isActive ? '0 0 10px rgba(212,160,23,0.2)' : 'none',
-                                        }}>{f}</div>
-                                    );
-                                })}
-                            </div>
-                        </motion.div>
+                        </div>
 
-                        {/* Network Events */}
-                        <motion.div className="panel" style={{ flex: 1 }}
-                            initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.14 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                                <RefreshCw size={13} color="#39F07A" />
+                        {/* Events Log */}
+                        <div className="panel" style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                <AlertTriangle size={12} color="#E8820C" />
                                 <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '1.5px' }}>NETWORK EVENTS</span>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {failed > 0 ? nodes.filter(n => n.failed).map(n => (
-                                    <AnimatePresence key={n.id}>
-                                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                                            style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#FF4444', marginTop: '3px', flexShrink: 0 }} />
-                                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#FF4444', lineHeight: 1.5 }}>
-                                                NODE-{String(n.id + 1).padStart(2, '0')} FAILED · PATH RECONFIGURED
-                                            </span>
-                                        </motion.div>
-                                    </AnimatePresence>
-                                )) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Activity size={13} color="#39F07A" />
-                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#39F07A' }}>
-                                            All nodes operational
-                                        </span>
+                            {EVENTS.map((ev, i) => {
+                                const col = ev.type === 'danger' ? '#FF3131' : ev.type === 'ai' ? '#00F2FF' : ev.type === 'warn' ? '#E8820C' : '#9ACD32';
+                                return (
+                                    <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', alignItems: 'flex-start' }}>
+                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#2A3D1A', flexShrink: 0, paddingTop: '1px' }}>{ev.ts}</span>
+                                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: col, marginTop: '4px', flexShrink: 0 }} />
+                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: col, lineHeight: 1.5 }}>{ev.msg}</span>
                                     </div>
-                                )}
-                            </div>
-                        </motion.div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
