@@ -36,7 +36,7 @@ export default function Sidebar() {
                 backgroundImage: "url('/army_sidebar.png')",
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                opacity: 0.12,
+                opacity: 0.1,
                 zIndex: 0,
             }} />
 
@@ -50,67 +50,68 @@ export default function Sidebar() {
             {/* Content */}
             <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-                {/* ── HEADER / LOGO ── */}
+                {/* ── HEADER ── */}
                 <div style={{
-                    padding: '28px 22px 20px',
+                    padding: '18px 22px 16px',
                     borderBottom: '1px solid rgba(36,51,24,0.8)',
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        {/* Emblem */}
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                    {/* NODE BHARAT Logo — centered, large */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ position: 'relative' }}>
                             <img
-                                src="/army_emblem.png"
-                                alt="INDRA NET"
+                                src="/node_bharat_logo.png"
+                                alt="NODE BHARAT"
                                 style={{
-                                    width: '50px', height: '50px',
-                                    borderRadius: '50%',
-                                    border: '2px solid rgba(212,160,23,0.55)',
-                                    boxShadow: '0 0 18px rgba(212,160,23,0.35), 0 0 50px rgba(212,160,23,0.08)',
-                                    objectFit: 'cover',
+                                    width: '120px',
+                                    height: '120px',
+                                    objectFit: 'contain',
+                                    filter: 'drop-shadow(0 0 12px rgba(212,160,23,0.4)) drop-shadow(0 0 32px rgba(212,160,23,0.12))',
+                                    display: 'block',
                                 }}
                             />
-                            {/* Ping ring */}
+                            {/* Subtle ping ring */}
                             <div style={{
-                                position: 'absolute', inset: '-8px',
+                                position: 'absolute',
+                                inset: '-10px',
                                 borderRadius: '50%',
-                                border: '1px solid rgba(212,160,23,0.2)',
-                                animation: 'pingRing 3s ease-out infinite',
+                                border: '1px solid rgba(212,160,23,0.15)',
+                                animation: 'pingRing 3.5s ease-out infinite',
+                                pointerEvents: 'none',
                             }} />
                         </div>
 
-                        {/* Title */}
-                        <div>
-                            <h1 className="glitch" style={{
-                                fontFamily: 'Orbitron, sans-serif',
-                                fontWeight: 900,
-                                fontSize: '16px',
-                                color: '#F0C040',
-                                letterSpacing: '5px',
-                                textShadow: '0 0 14px rgba(212,160,23,0.65), 0 0 35px rgba(212,160,23,0.25)',
-                                lineHeight: 1.1,
-                            }}>
-                                INDRA NET
-                            </h1>
-                            <p style={{
-                                fontFamily: 'JetBrains Mono, monospace',
-                                fontSize: '8px',
-                                color: '#4A6A2A',
-                                letterSpacing: '2.5px',
-                                marginTop: '4px',
-                            }}>
-                                DIGITAL TWIN DEFENSE
-                            </p>
-                        </div>
+                        {/* INDRA NET label */}
+                        <h1 className="glitch" style={{
+                            fontFamily: 'Orbitron, sans-serif',
+                            fontWeight: 900,
+                            fontSize: '13px',
+                            color: '#F0C040',
+                            letterSpacing: '4px',
+                            textShadow: '0 0 12px rgba(212,160,23,0.6)',
+                            lineHeight: 1.1,
+                            marginTop: '8px',
+                        }}>
+                            INDRA NET
+                        </h1>
+                        <p style={{
+                            fontFamily: 'JetBrains Mono, monospace',
+                            fontSize: '8px',
+                            color: '#4A6A2A',
+                            letterSpacing: '2px',
+                            marginTop: '3px',
+                        }}>
+                            DIGITAL TWIN DEFENSE
+                        </p>
                     </div>
 
                     {/* Classification badge */}
-                    <div className="army-badge" style={{ marginTop: '14px', width: '100%', justifyContent: 'center' }}>
+                    <div className="army-badge" style={{ marginTop: '12px', width: '100%', justifyContent: 'center' }}>
                         <Shield size={10} />
                         TOP SECRET · CLASSIFIED
                     </div>
 
                     {/* System status row */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                         <div className="status-pulse" style={{
                             width: '7px', height: '7px', borderRadius: '50%',
                             background: '#39F07A',
@@ -123,7 +124,7 @@ export default function Sidebar() {
                 </div>
 
                 {/* ── SECTION LABEL ── */}
-                <div style={{ padding: '16px 22px 8px' }}>
+                <div style={{ padding: '14px 22px 8px' }}>
                     <span style={{
                         fontFamily: 'JetBrains Mono, monospace', fontSize: '9px',
                         color: '#2A3D1A', letterSpacing: '3px',
@@ -173,7 +174,7 @@ export default function Sidebar() {
                                         }} />
                                     )}
 
-                                    {/* Icon container */}
+                                    {/* Icon */}
                                     <div style={{
                                         width: '36px', height: '36px',
                                         borderRadius: '8px', flexShrink: 0,
@@ -226,7 +227,7 @@ export default function Sidebar() {
                 </nav>
 
                 {/* ── FOOTER ── */}
-                <div style={{ padding: '16px 14px', borderTop: '1px solid rgba(36,51,24,0.6)' }}>
+                <div style={{ padding: '14px 14px', borderTop: '1px solid rgba(36,51,24,0.6)' }}>
                     {/* Encryption bar */}
                     <div style={{
                         background: 'rgba(212,160,23,0.05)',
@@ -267,6 +268,7 @@ export default function Sidebar() {
                         भारत सरकार · GOVT. OF INDIA
                     </p>
                 </div>
+
             </div>
         </aside>
     );
