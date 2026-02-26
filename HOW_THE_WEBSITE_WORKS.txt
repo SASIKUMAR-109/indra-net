@@ -1,0 +1,166 @@
+================================================================
+  INDRA NET — How This Website Works
+  A Plain-Language Technical Explanation
+================================================================
+
+WHAT IS THIS WEBSITE?
+─────────────────────
+INDRA NET is a Next.js web application — a dashboard/control
+panel that simulates and displays a sovereign Indian defense
+mesh communication network. It is built to look and feel like
+a real military operations center, but runs entirely in the
+browser. No real hardware is connected; all data is simulated.
+
+
+TECHNOLOGY USED
+───────────────
+  Framework  : Next.js 14 (React-based, runs on Node.js)
+  Language   : TypeScript + TSX (typed JavaScript for UI)
+  Animations : Framer Motion (smooth page/card animations)
+  Icons      : Lucide React (Shield, Wifi, Radio, etc.)
+  Fonts      : JetBrains Mono (terminal text), Montserrat/Inter
+  CSS        : Inline styles + globals.css (dark theme, grid bg)
+
+
+OVERALL LAYOUT STRUCTURE
+────────────────────────
+Every page shares the same shell (defined in layout.tsx):
+
+  ┌────────────────────────────────────────┐
+  │  SIDEBAR (240px wide, always visible) │
+  │  - Navigation links to all pages      │
+  ├────────────────────────────────────────┤
+  │  MAIN CONTENT AREA (rest of screen)   │
+  │  - Each page renders its own content  │
+  └────────────────────────────────────────┘
+
+The dark background (#0A0A0A) with a subtle cyan grid is applied
+globally via layout.tsx — every page inherits this automatically.
+
+
+PAGE-BY-PAGE EXPLANATION
+────────────────────────
+
+── 1. HOME PAGE  (src/app/page.tsx)
+   The "Global Operations Center" — the main dashboard.
+
+   What you see:
+   • A spinning 3D Digital Twin node (rendered via Three.js /
+     WebGL in the DigitalTwinNode component).
+   • A "System Health Monitor" showing 5 live metrics:
+       - Network Stability (99.8%)
+       - Active Mesh Nodes (14)
+       - Encryption (AES-128 ACTIVE)
+       - Cognitive Frequency (433.5 MHz)
+       - Edge Latency (12ms)
+   • A terminal log at the bottom that scrolls through system
+     messages every 1.4 seconds automatically.
+
+   How it works in code:
+   • useEffect() starts a setInterval timer that cycles through
+     a list of log messages, appending them to the visible list.
+   • Framer Motion animates cards sliding in from left/right.
+   • The 3D node loads separately (dynamic import) so it doesn't
+     block the rest of the page from loading.
+
+── 2. MESH TOPOLOGY  (src/app/mesh-topology/page.tsx)
+   A live interactive network graph simulation.
+
+   What you see:
+   • 14 mesh nodes drawn on an HTML Canvas, connected by links.
+   • Nodes gently float and repel each other (physics simulation).
+   • Animated "data packets" (cyan dots) travel along the links.
+   • A slider to simulate radio INTERFERENCE (0–100%).
+   • As you increase interference, nodes "fail" (turn red) and
+     the network reconfigures around them automatically.
+   • Frequency hopping display updates as interference increases.
+
+   How it works in code:
+   • Canvas API + requestAnimationFrame draws 60fps animation.
+   • Each node has (x, y, vx, vy) — position and velocity.
+   • A force algorithm pushes nodes apart and pulls linked nodes
+     toward each other, creating organic-looking movement.
+   • The interference slider calls generateNodes(value) which
+     randomly marks some nodes as "failed", and generateLinks()
+     rebuilds the connection paths around active nodes only.
+
+── 3. CYBER VAULT  (src/app/cyber-vault/page.tsx)
+   A security monitoring and simulation dashboard.
+
+   What you see:
+   • Encrypted Packet Stream — scrolling random hex/symbol text
+     that looks like live encrypted data flowing.
+   • Decryption Engine — animated progress bar (AES-128-CBC).
+   • Authentication Status — shows AUTHENTICATED or VERIFYING.
+   • Adversarial Simulation — a big button "INJECT MALICIOUS NODE":
+       → Clicking it triggers a 9-step threat response sequence
+         (one log line appears every 700ms in a terminal view).
+       → Hardware Fingerprint panel highlights a rogue MAC address.
+       → After all steps complete, system shows THREAT NEUTRALIZED.
+   • Edge Inference Latency — a live bar chart that updates every
+     500ms showing ~12ms latency values in green (red if >16ms).
+   • Active Security Policies list (Zero-Trust, Remote Wipe, etc.)
+
+   How it works in code:
+   • setInterval every 200ms adds a new random character line to
+     the crypto stream (creates the "live hacking" effect).
+   • The inject() function chains multiple setInterval timers to
+     reveal threat log lines one by one with precise timing.
+   • useState manages all the live state: auth status, logs,
+     fingerprint, latency data, injection status.
+
+── 4. STRATEGIC INTELLIGENCE  (src/app/strategic-intelligence/page.tsx)
+   A government briefing / impact analysis page.
+
+   What you see:
+   • R&D Cost Optimization card — shows Digital Twin reduces
+     R&D cost by 70% (₹75 Lakh vs ₹2.5 Crore). Animated bars
+     grow from 0 to their actual widths when the page loads.
+   • INDRA NET vs Satellite comparison table — 7 features
+     compared side-by-side (latency, cost, jamming resistance, etc.)
+   • Deployment Roadmap timeline — 5 milestones from 2024 to 2030,
+     with green checkmarks for completed phases.
+   • UN SDG Cards — shows alignment with SDG 09, 16, and 17.
+
+   How it works in code:
+   • Purely static data (arrays of objects) rendered with .map().
+   • Framer Motion "initial → animate" transitions make elements
+     slide in from left/right or fade up when page loads.
+   • No timers or intervals — this page is fully static display.
+
+
+HOW PAGES ARE CONNECTED (ROUTING)
+──────────────────────────────────
+Next.js uses "file-based routing" — each folder inside /app/
+automatically becomes a URL:
+
+  /app/page.tsx                      → localhost:3000/
+  /app/mesh-topology/page.tsx        → localhost:3000/mesh-topology
+  /app/cyber-vault/page.tsx          → localhost:3000/cyber-vault
+  /app/strategic-intelligence/page.tsx → localhost:3000/strategic-intelligence
+  /app/silicon-lab/page.tsx          → localhost:3000/silicon-lab
+
+The Sidebar component links to all these routes so users can
+navigate between pages without a full page reload.
+
+
+HOW TO RUN IT LOCALLY
+──────────────────────
+  1. Open a terminal in the indra-net/ folder
+  2. Run:  npm install      (first time only)
+  3. Run:  npm run dev
+  4. Open: http://localhost:3000
+
+
+KEY DESIGN CHOICES
+──────────────────
+  • Dark theme (#0A0A0A background) = military operations feel
+  • Cyan (#00F2FF) = normal/active state
+  • Green (#00FF9C) = success/nominal
+  • Red (#FF3131) = alert/failure
+  • All "live" data is simulated with JavaScript timers —
+    no backend server or database is needed.
+
+================================================================
+  INDRA NET Dashboard · Built with Next.js + TypeScript
+================================================================

@@ -1,0 +1,94 @@
+================================================================
+  INDRA NET — Sovereign Defense Communication System
+  HOW IT WORKS
+================================================================
+
+OVERVIEW
+--------
+INDRA NET is a next-generation, indigenous mesh communication
+network designed for India's defense and border operations.
+It provides secure, offline-capable, low-latency communication
+across remote and high-altitude terrain where satellite or
+conventional networks are unavailable or too expensive.
+
+
+CORE TECHNOLOGY
+---------------
+1. MESH NETWORKING
+   - Multiple low-cost nodes (each < ₹15,000) form a self-
+     organizing wireless mesh.
+   - Operates on 433.5 MHz cognitive frequency bands.
+   - Each node can route data through up to 3+ hops.
+   - If one node fails, the mesh automatically reroutes
+     (self-healing network).
+
+2. FREQUENCY HOPPING SPREAD SPECTRUM (FHSS)
+   - The system rapidly hops between frequencies to avoid
+     jamming and interception.
+   - Makes it extremely resistant to electronic warfare.
+
+3. ENCRYPTION
+   - Hardware-level AES-128 encryption on every node.
+   - Zero-Trust architecture: every connection requires
+     a valid HMAC-SHA256 handshake before data flows.
+
+4. DIGITAL TWIN
+   - A real-time 3D simulation mirrors the live network.
+   - Used during R&D to cut development costs by 70%.
+     (₹75 Lakh with Digital Twin vs ₹2.5 Crore traditional)
+   - Fidelity: 99.8% match between simulation and hardware.
+
+
+KEY PAGES IN THE WEB DASHBOARD
+-------------------------------
+- Home (Global Operations Center)
+    Live metrics: network stability, active nodes, latency,
+    encryption status, and a real-time system terminal log.
+
+- Mesh Topology
+    Visual map of all active nodes, connection paths,
+    signal strength, and hop counts across the network.
+
+- Silicon Lab
+    Hardware design and firmware details for the
+    ESP32-based mesh nodes used in the system.
+
+- Cyber Vault
+    Security monitoring: encryption status, anomaly
+    detection, and threat intelligence feeds.
+
+- Strategic Intelligence
+    Government briefing dashboard showing cost savings,
+    INDRA NET vs Satellite comparison, deployment roadmap,
+    and alignment with UN Sustainable Development Goals.
+
+
+PERFORMANCE AT A GLANCE
+------------------------
+  Latency         :  12 ms          (vs 600ms+ satellite)
+  Setup Time      :  < 1 hour       (vs 3–6 months satellite)
+  Cost per Node   :  < ₹15,000      (vs ₹2–5 Crore satellite)
+  Offline Capable :  YES
+  Jamming Resist  :  FHSS Active
+  Encryption      :  AES-128 Hardware
+  Network Stable  :  99.8%
+
+
+DEPLOYMENT ROADMAP
+------------------
+  2024  — Proof of Concept (ESP32 Digital Twin simulation)
+  2025  — Field Prototype (Multi-node mountain terrain test)
+  2027  — Pilot Deployment (50-node high-altitude field trial)
+  2028  — Defense Integration (Army battalion backbone)
+  2030  — Full Himalayan Border Rollout (LAC & LOC)
+
+
+UN SDG ALIGNMENT
+----------------
+  SDG 09 — Industry, Innovation & Infrastructure
+  SDG 16 — Peace, Justice & Strong Institutions
+  SDG 17 — Partnerships for the Goals
+
+================================================================
+  INDRA NET · CLASSIFIED · TOP SECRET · Node Bharat Initiative
+================================================================
