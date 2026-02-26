@@ -3,257 +3,274 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, ShieldCheck, Fingerprint, Zap, AlertOctagon } from 'lucide-react';
 
-const GOLD = '#D4A017';
-const GREEN = '#3DFF88';
-const RED = '#FF4444';
-const OLIVE = '#6B8C42';
-const MUTED = '#7A8A6A';
-const CREAM = '#EDE8D0';
-const BG_CARD = 'rgba(20,31,15,0.9)';
-const BORDER = 'rgba(74,106,42,0.35)';
-const BORDER_G = 'rgba(212,160,23,0.25)';
-
-const CHARS = '!@#$%^&*()_+[]{}|;:,.<>?ABCDEFabcdef0123456789';
-const randLine = () => Array.from({ length: 52 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef0123456789!@#$%^&*';
+const randRow = () => Array.from({ length: 54 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
 const randHex = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 16).toString(16).toUpperCase()).join('');
 
-const THREAT = [
-    '> Unauthorized Hardware Signature Detected',
-    '> HMAC Verification FAILED · Node-XX',
-    '> Isolation Protocol Triggered',
-    '> Blacklisting MAC: DE:AD:BE:EF:CA:FE',
-    '> Remote Wipe Executed · Node-XX Memory Cleared',
-    '> Threat Actor Profiled by AI Engine',
-    '> Edge Inference: Anomaly Score 0.97',
-    '> Threat Neutralized · System Secure',
-    '> Resuming Normal Operations...',
+const THREAT_EVENTS = [
+    'UNAUTHORIZED Hardware Signature Detected',
+    'HMAC Verification FAILED · Node-XX',
+    'Isolation Protocol Triggered',
+    'Blacklisting MAC: DE:AD:BE:EF:CA:FE',
+    'Remote Wipe Executed · Memory Cleared',
+    'Threat Actor Profiled by AI Engine',
+    'Edge Inference: Anomaly Score 0.97',
+    '✓ Threat Neutralized · System Secure',
+    '✓ Resuming Normal Operations...',
 ];
 
-const card = { background: BG_CARD, border: `1px solid ${BORDER}`, borderRadius: '10px', padding: '20px' };
-const label = { fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, letterSpacing: '2px', textTransform: 'uppercase' as const, marginBottom: '12px' };
+const POLICIES = [
+    'Zero-Trust Architecture',
+    'Hardware-bound Keys',
+    'Mutual TLS Everywhere',
+    'AI Anomaly Detection (TFLite)',
+    'Remote Wipe Protocol',
+];
 
 export default function CyberVaultPage() {
     const [cryptoLines, setCryptoLines] = useState<string[]>([]);
     const [decryptPct, setDecryptPct] = useState(0);
     const [auth, setAuth] = useState<'ok' | 'verifying'>('ok');
     const [injected, setInjected] = useState(false);
+    const [running, setRunning] = useState(false);
+    const [done, setDone] = useState(false);
     const [threatLogs, setThreatLogs] = useState<string[]>([]);
-    const [fp, setFp] = useState('');
+    const [fingerprint, setFingerprint] = useState('');
     const [latency, setLatency] = useState<number[]>([]);
     const threatRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => { setFp(randHex(32)); }, []);
+    useEffect(() => { setFingerprint(randHex(32)); }, []);
+
     useEffect(() => {
-        const iv = setInterval(() => setCryptoLines((p) => [...p, randLine()].slice(-16)), 200);
+        const iv = setInterval(() => setCryptoLines(p => [...p, randRow()].slice(-14)), 180);
         return () => clearInterval(iv);
     }, []);
+
     useEffect(() => {
-        const iv = setInterval(() => setLatency((p) => [...p, 10 + Math.random() * 8].slice(-22)), 500);
+        const iv = setInterval(() => setLatency(p => [...p, 10 + Math.random() * 8].slice(-24)), 500);
         return () => clearInterval(iv);
     }, []);
+
     useEffect(() => {
         if (threatRef.current) threatRef.current.scrollTop = threatRef.current.scrollHeight;
     }, [threatLogs]);
 
     const inject = () => {
-        if (injected) return;
-        setInjected(true); setAuth('verifying'); setThreatLogs([]); setDecryptPct(0);
+        if (running || done) return;
+        setInjected(true); setRunning(true); setThreatLogs([]); setDecryptPct(0); setAuth('verifying');
         let i = 0;
-        const iv = setInterval(() => { setThreatLogs((p) => [...p, THREAT[i]]); i++; if (i >= THREAT.length) clearInterval(iv); }, 700);
-        setTimeout(() => setAuth('ok'), THREAT.length * 700 + 500);
+        const iv = setInterval(() => {
+            setThreatLogs(p => [...p, THREAT_EVENTS[i]]); i++;
+            if (i >= THREAT_EVENTS.length) { clearInterval(iv); setRunning(false); setDone(true); setAuth('ok'); }
+        }, 680);
         let p = 0;
-        const div = setInterval(() => { p += Math.random() * 8; setDecryptPct(Math.min(p, 100)); if (p >= 100) clearInterval(div); }, 120);
+        const dv = setInterval(() => {
+            p += Math.random() * 8; setDecryptPct(Math.min(p, 100));
+            if (p >= 100) clearInterval(dv);
+        }, 120);
     };
 
     const maxL = Math.max(...latency, 20);
 
     return (
-        <div style={{ padding: '32px', minHeight: '100vh', maxWidth: '1600px' }}>
-            {/* Header */}
-            <div style={{ marginBottom: '26px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: RED, boxShadow: `0 0 8px ${RED}` }} />
-                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: OLIVE, letterSpacing: '3px' }}>ZERO-TRUST SECURITY · CYBER VAULT</span>
+        <div className="page-wrap">
+
+            {/* Hero */}
+            <div className="page-hero scanline">
+                <img src="/army_backdrop.png" alt="Cyber Vault" className="page-hero__img" />
+                <div className="page-hero__overlay" />
+                <div className="page-hero__content">
+                    <div className="page-hero__eyebrow">
+                        <div className="hero-dot red" />
+                        <span className="hero-eyebrow-text">ZERO-TRUST SECURITY · CYBER VAULT</span>
+                    </div>
+                    <h1 className="page-hero__title">Cyber <span className="red">Vault</span></h1>
+                    <p className="page-hero__sub">Hardware fingerprinting · Zero-trust auth · Edge inference security</p>
                 </div>
-                <h1 style={{ fontFamily: 'Orbitron, Montserrat, sans-serif', fontWeight: 800, fontSize: '36px', color: CREAM, margin: 0 }}>
-                    Cyber <span style={{ color: RED, textShadow: `0 0 15px rgba(255,68,68,0.5)` }}>Vault</span>
-                </h1>
-                <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: MUTED, marginTop: '8px' }}>
-                    Hardware fingerprinting · Zero-trust auth · Edge inference security
-                </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px' }}>
-                {/* Column 1 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Crypto stream */}
-                    <div style={card}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: RED, boxShadow: `0 0 6px ${RED}` }} />
-                            <p style={{ ...label, marginBottom: 0 }}>Encrypted Packet Stream</p>
-                        </div>
-                        <div style={{ height: '155px', overflow: 'hidden', position: 'relative' }}>
-                            {cryptoLines.map((line, i) => (
-                                <div key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', letterSpacing: '1px', lineHeight: '15px', color: `rgba(212,160,23,${0.12 + (i / cryptoLines.length) * 0.55})` }}>{line}</div>
-                            ))}
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', background: `linear-gradient(transparent, rgba(20,31,15,0.98))` }} />
-                        </div>
-                    </div>
+            <div className="content-wrap">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
 
-                    {/* Decryption */}
-                    <div style={card}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                            <Zap size={15} color={GOLD} />
-                            <p style={{ ...label, marginBottom: 0 }}>Decryption Engine</p>
-                        </div>
-                        <div style={{ height: '5px', background: 'rgba(11,15,8,0.8)', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
-                            <div style={{ height: '100%', width: `${decryptPct}%`, background: 'linear-gradient(90deg, #D4A017, #F0C040)', borderRadius: '3px', transition: 'width 0.2s', boxShadow: `0 0 8px ${GOLD}` }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED }}>AES-256-CBC</span>
-                            <span style={{ fontFamily: 'Orbitron, monospace', fontSize: '14px', color: GOLD, fontWeight: 700 }}>{Math.round(decryptPct)}%</span>
-                        </div>
-                    </div>
+                    {/* ── Column 1 ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-                    {/* Auth status */}
-                    <div style={{ ...card, border: `1px solid ${auth === 'ok' ? BORDER : 'rgba(255,68,68,0.3)'}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                            {auth === 'ok' ? <ShieldCheck size={17} color={GREEN} /> : <ShieldAlert size={17} color={RED} />}
-                            <p style={{ ...label, marginBottom: 0 }}>Authentication Status</p>
-                        </div>
-                        <AnimatePresence mode="wait">
-                            <motion.div key={auth} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                {auth === 'ok' ? (
-                                    <>
-                                        <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '18px', fontWeight: 700, color: GREEN, textShadow: `0 0 10px rgba(61,255,136,0.4)` }}>AUTHENTICATED</div>
-                                        <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, marginTop: '6px' }}>HMAC-SHA256 · Zero-Trust Policy · Session Active</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '18px', fontWeight: 700, color: RED, textShadow: `0 0 10px rgba(255,68,68,0.4)` }}>VERIFYING...</div>
-                                        <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, marginTop: '6px' }}>Identity challenge issued to network...</p>
-                                    </>
-                                )}
-                            </motion.div>
-                        </AnimatePresence>
-                    </div>
-                </div>
-
-                {/* Column 2 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Inject */}
-                    <div style={{ ...card, textAlign: 'center', padding: '26px', border: `1px solid rgba(255,68,68,0.25)` }}>
-                        <AlertOctagon size={34} color={RED} style={{ margin: '0 auto 14px', display: 'block', filter: `drop-shadow(0 0 8px ${RED})` }} />
-                        <h3 style={{ fontFamily: 'Rajdhani, Montserrat, sans-serif', fontSize: '18px', fontWeight: 700, color: CREAM, marginBottom: '8px' }}>Adversarial Simulation</h3>
-                        <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, marginBottom: '18px', lineHeight: 1.6 }}>
-                            Inject a rogue node to test zero-trust isolation and hardware fingerprint verification
-                        </p>
-                        <motion.button
-                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                            onClick={inject}
-                            disabled={injected && threatLogs.length < THREAT.length}
-                            style={{
-                                width: '100%', padding: '13px', borderRadius: '7px', cursor: 'pointer',
-                                fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', fontWeight: 700, letterSpacing: '1px',
-                                background: injected ? 'rgba(255,68,68,0.06)' : 'rgba(255,68,68,0.12)',
-                                border: `1px solid rgba(255,68,68,0.35)`, color: RED,
-                                boxShadow: injected ? `0 0 20px rgba(255,68,68,0.15)` : 'none',
-                            }}
-                        >
-                            {injected && threatLogs.length < THREAT.length ? '⚠ ISOLATING THREAT...' : injected ? '✓ THREAT NEUTRALIZED' : '◈ INJECT MALICIOUS NODE'}
-                        </motion.button>
-                    </div>
-
-                    {/* Threat terminal */}
-                    <div style={{ ...card, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: RED }} />
-                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#E8820C' }} />
-                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: GREEN }} />
+                        {/* Crypto Stream */}
+                        <div className="panel-gold">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#FF4444', boxShadow: '0 0 8px #FF4444', animation: 'pulseDot 1.5s infinite' }} />
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '2px' }}>ENCRYPTED PACKET STREAM</span>
                             </div>
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, letterSpacing: '2px' }}>SECURITY TERMINAL</span>
+                            <div style={{ height: '140px', overflow: 'hidden', position: 'relative' }}>
+                                {cryptoLines.map((line, i) => (
+                                    <div key={i} style={{
+                                        fontFamily: 'JetBrains Mono, monospace',
+                                        fontSize: '10px', lineHeight: '15px', letterSpacing: '1px',
+                                        color: `rgba(212,160,23,${0.1 + (i / cryptoLines.length) * 0.6})`,
+                                    }}>{line}</div>
+                                ))}
+                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', background: 'linear-gradient(transparent, rgba(17,26,12,0.98))' }} />
+                            </div>
                         </div>
-                        <div ref={threatRef} style={{ height: '260px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {threatLogs.length === 0 ? (
-                                <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#3D4D2A' }}>Awaiting security events...</p>
-                            ) : (
+
+                        {/* Decryption Engine */}
+                        <div className="panel">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <Zap size={14} color="#D4A017" />
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '2px' }}>DECRYPTION ENGINE</span>
+                            </div>
+                            <div className="progress-track">
+                                <div className="progress-fill" style={{ width: `${decryptPct}%`, transition: 'width 0.2s' }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#7A8A6A' }}>AES-256-CBC</span>
+                                <span style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: '#D4A017', fontWeight: 700 }}>{Math.round(decryptPct)}%</span>
+                            </div>
+                        </div>
+
+                        {/* Auth Status */}
+                        <div className="panel" style={{ borderColor: auth === 'ok' ? undefined : 'rgba(255,68,68,0.3)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                {auth === 'ok' ? <ShieldCheck size={16} color="#39F07A" /> : <ShieldAlert size={16} color="#FF4444" />}
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '2px' }}>AUTH STATUS</span>
+                            </div>
+                            <AnimatePresence mode="wait">
+                                <motion.div key={auth} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                    <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '20px', fontWeight: 700, color: auth === 'ok' ? '#39F07A' : '#FF4444', textShadow: `0 0 14px ${auth === 'ok' ? 'rgba(57,240,122,0.4)' : 'rgba(255,68,68,0.4)'}` }}>
+                                        {auth === 'ok' ? 'AUTHENTICATED' : 'VERIFYING...'}
+                                    </div>
+                                    <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', marginTop: '6px' }}>
+                                        {auth === 'ok' ? 'HMAC-SHA256 · Zero-Trust · Session Active' : 'Identity challenge issued to network...'}
+                                    </p>
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Policies */}
+                        <div className="panel">
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '2px', display: 'block', marginBottom: '12px' }}>SECURITY POLICIES</span>
+                            {POLICIES.map(policy => (
+                                <div key={policy} className="data-row" style={{ padding: '8px 0' }}>
+                                    <span className="data-label">{policy}</span>
+                                    <span className="status-pill green" style={{ fontSize: '8px', padding: '2px 8px' }}>ON</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Column 2 ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                        {/* Inject Button */}
+                        <div className="panel" style={{ textAlign: 'center', padding: '30px 22px', border: '1px solid rgba(255,68,68,0.22)' }}>
+                            <AlertOctagon size={38} color="#FF4444" style={{ margin: '0 auto 16px', display: 'block', filter: 'drop-shadow(0 0 10px rgba(255,68,68,0.4))' }} />
+                            <h3 style={{ fontFamily: 'Rajdhani, sans-serif', fontWeight: 700, fontSize: '19px', color: '#EDE8D0', marginBottom: '10px' }}>
+                                Adversarial Simulation
+                            </h3>
+                            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#7A8A6A', lineHeight: 1.65, marginBottom: '20px' }}>
+                                Inject a rogue node to test zero-trust isolation and hardware fingerprint verification
+                            </p>
+                            <motion.button
+                                className="btn btn-danger"
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={inject}
+                                disabled={running}
+                                style={{ width: '100%', boxShadow: done ? '0 0 24px rgba(255,68,68,0.15)' : 'none', opacity: running ? 0.7 : 1 }}
+                            >
+                                <AlertOctagon size={14} />
+                                {running ? '⚠ ISOLATING THREAT...'
+                                    : done ? '✓ THREAT NEUTRALIZED'
+                                        : '◈ INJECT MALICIOUS NODE'}
+                            </motion.button>
+                        </div>
+
+                        {/* Threat Terminal */}
+                        <div className="terminal" style={{ flex: 1 }}>
+                            <div className="terminal__topbar">
+                                <div className="terminal__dots">
+                                    <div className="terminal__dot" style={{ background: '#FF4444' }} />
+                                    <div className="terminal__dot" style={{ background: '#E8820C' }} />
+                                    <div className="terminal__dot" style={{ background: '#39F07A' }} />
+                                </div>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#4A6A2A', letterSpacing: '2px', marginLeft: '4px' }}>SECURITY TERMINAL</span>
+                            </div>
+                            <div ref={threatRef} className="terminal__body" style={{ height: '280px' }}>
+                                {threatLogs.length === 0 && (
+                                    <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#2A3D1A' }}>
+                                        Awaiting security events...
+                                    </p>
+                                )}
                                 <AnimatePresence>
                                     {threatLogs.map((log, i) => (
-                                        <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}
-                                            style={{ display: 'flex', gap: '10px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
-                                            <span style={{ color: RED, flexShrink: 0 }}>{'>'}</span>
-                                            <span style={{ color: log.includes('Neutralized') ? GREEN : log.includes('Resuming') ? CREAM : RED, lineHeight: 1.5 }}>{log}</span>
+                                        <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="terminal__line">
+                                            <span className="terminal__timestamp" />
+                                            <span style={{ color: log.startsWith('✓') ? '#39F07A' : '#FF4444', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
+                                                {'> '}{log}
+                                            </span>
                                         </motion.div>
                                     ))}
                                 </AnimatePresence>
-                            )}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: RED }}>$</span>
-                                <div style={{ width: '9px', height: '17px', backgroundColor: RED, opacity: 0.8 }} />
+                                <div className="terminal__line">
+                                    <span className="terminal__timestamp" />
+                                    <span style={{ color: '#FF4444', fontSize: '14px' }}>$</span>
+                                    <div className="terminal__cursor" style={{ background: '#FF4444', boxShadow: '0 0 8px #FF4444', marginLeft: '8px' }} />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Column 3 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Fingerprint */}
-                    <div style={{ ...card, border: `1px solid ${BORDER_G}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                            <Fingerprint size={17} color={GOLD} />
-                            <p style={{ ...label, marginBottom: 0 }}>Hardware Fingerprint</p>
-                        </div>
-                        {[
-                            { l: 'NODE UID', v: fp.slice(0, 16), ok: true },
-                            { l: 'HMAC KEY', v: fp.slice(16, 28) + '...', ok: true },
-                            { l: 'CHIP ID', v: 'ESP32-S3-' + fp.slice(0, 6), ok: true },
-                            { l: 'ROGUE MAC', v: injected ? 'DE:AD:BE:EF:CA:FE' : '---', ok: !injected },
-                        ].map((item) => (
-                            <div key={item.l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${BORDER}` }}>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED }}>{item.l}</span>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: item.ok ? GOLD : RED }}>{item.v}</span>
-                            </div>
-                        ))}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
-                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: injected ? RED : GREEN, boxShadow: `0 0 6px ${injected ? RED : GREEN}` }} />
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: injected ? RED : GREEN }}>
-                                {injected ? 'ROGUE DEVICE IDENTIFIED' : 'ALL SIGNATURES VALID'}
-                            </span>
-                        </div>
-                    </div>
+                    {/* ── Column 3 ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-                    {/* Latency chart */}
-                    <div style={{ ...card, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Zap size={15} color={GREEN} />
-                                <p style={{ ...label, marginBottom: 0 }}>Edge Inference Latency</p>
+                        {/* Fingerprint */}
+                        <div className="panel-gold">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                                <Fingerprint size={16} color="#D4A017" />
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '2px' }}>HARDWARE FINGERPRINT</span>
                             </div>
-                            <span style={{ fontFamily: 'Orbitron, monospace', fontSize: '20px', fontWeight: 700, color: GREEN }}>~12ms</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '110px' }}>
-                            {latency.map((val, i) => (
-                                <motion.div key={i} style={{ flex: 1, borderRadius: '2px', minWidth: '6px', height: `${(val / maxL) * 100}%`, background: val > 16 ? 'rgba(255,68,68,0.6)' : 'rgba(61,255,136,0.5)' }} initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} />
+                            {[
+                                { l: 'NODE UID', v: fingerprint.slice(0, 16), ok: true },
+                                { l: 'HMAC KEY', v: fingerprint.slice(16, 28) + '...', ok: true },
+                                { l: 'CHIP ID', v: 'ESP32-S3-' + fingerprint.slice(0, 6), ok: true },
+                                { l: 'ROGUE MAC', v: injected ? 'DE:AD:BE:EF:CA:FE' : '---', ok: !injected },
+                            ].map(item => (
+                                <div className="data-row" key={item.l}>
+                                    <span className="data-label">{item.l}</span>
+                                    <span className="data-value" style={{ color: item.ok ? '#D4A017' : '#FF4444', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px' }}>{item.v}</span>
+                                </div>
                             ))}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#3D4D2A' }}>0ms</span>
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#3D4D2A' }}>TFLite Micro · Real-time</span>
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#3D4D2A' }}>20ms</span>
-                        </div>
-                    </div>
-
-                    {/* Active policies */}
-                    <div style={card}>
-                        <p style={label}>Active Security Policies</p>
-                        {['Zero-Trust Architecture', 'Hardware-bound Keys', 'Mutual TLS Everywhere', 'Anomaly AI (TFLite)', 'Remote Wipe Protocol'].map((policy) => (
-                            <div key={policy} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0', borderBottom: `1px solid rgba(42,61,28,0.4)` }}>
-                                <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: GREEN, flexShrink: 0 }} />
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, flex: 1 }}>{policy}</span>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: GREEN }}>ON</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(36,51,24,0.6)' }}>
+                                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: injected ? '#FF4444' : '#39F07A', boxShadow: `0 0 8px ${injected ? '#FF4444' : '#39F07A'}` }} />
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: injected ? '#FF4444' : '#39F07A' }}>
+                                    {injected ? 'ROGUE DEVICE IDENTIFIED' : 'ALL SIGNATURES VALID'}
+                                </span>
                             </div>
-                        ))}
+                        </div>
+
+                        {/* Latency Chart */}
+                        <div className="panel" style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Zap size={14} color="#39F07A" />
+                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#7A8A6A', letterSpacing: '1.5px' }}>EDGE INFERENCE LATENCY</span>
+                                </div>
+                                <span style={{ fontFamily: 'Orbitron, monospace', fontSize: '20px', fontWeight: 700, color: '#39F07A' }}>~12ms</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2.5px', height: '120px' }}>
+                                {latency.map((val, i) => (
+                                    <motion.div key={i}
+                                        style={{ flex: 1, borderRadius: '2px 2px 0 0', minWidth: '5px', height: `${(val / maxL) * 100}%`, background: val > 16 ? 'rgba(255,68,68,0.6)' : 'rgba(57,240,122,0.5)' }}
+                                        initial={{ scaleY: 0, originY: 1 }} animate={{ scaleY: 1, originY: 1 }}
+                                    />
+                                ))}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#2A3D1A' }}>0ms</span>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#2A3D1A' }}>TFLite Micro · Real-time</span>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#2A3D1A' }}>20ms</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

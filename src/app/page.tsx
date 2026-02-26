@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { Activity, Wifi, Shield, Radio, Clock, ChevronRight, Target, Layers } from 'lucide-react';
+import { Activity, Wifi, Shield, Radio, Clock, ChevronRight, Target, Layers, Zap } from 'lucide-react';
 
 const DigitalTwinNode = dynamic(() => import('@/components/DigitalTwinNode'), { ssr: false });
 
@@ -23,22 +23,20 @@ const logs = [
   '> Health Monitor: All Nodes Responsive',
 ];
 
-const metrics = [
-  { label: 'Network Stability', value: '99.8%', icon: Activity, color: '#3DFF88', status: 'OPTIMAL' },
-  { label: 'Active Mesh Nodes', value: '14', icon: Wifi, color: '#D4A017', status: 'NOMINAL' },
-  { label: 'Encryption', value: 'AES-256', icon: Shield, color: '#D4A017', status: 'ACTIVE' },
-  { label: 'Cog. Frequency', value: '433.5 MHz', icon: Radio, color: '#8DB05A', status: 'LOCKED' },
-  { label: 'Edge Latency', value: '12 ms', icon: Clock, color: '#3DFF88', status: 'NOMINAL' },
+const kpis = [
+  { label: 'NODES ONLINE', value: '14', color: '#D4A017' },
+  { label: 'UPTIME', value: '99.8%', color: '#39F07A' },
+  { label: 'THREAT LEVEL', value: 'ALPHA', color: '#FF4444' },
+  { label: 'SYNC FIDELITY', value: '99.8%', color: '#D4A017' },
 ];
 
-const GOLD = '#D4A017';
-const CREAM = '#EDE8D0';
-const OLIVE = '#6B8C42';
-const MUTED = '#7A8A6A';
-const GREEN = '#3DFF88';
-const BG_CARD = 'rgba(20,31,15,0.88)';
-const BORDER = 'rgba(74,106,42,0.35)';
-const BORDER_GOLD = 'rgba(212,160,23,0.25)';
+const metrics = [
+  { label: 'Network Stability', value: '99.8%', icon: Activity, color: '#39F07A', pct: 99.8, status: 'OPTIMAL' },
+  { label: 'Active Mesh Nodes', value: '14 / 14', icon: Wifi, color: '#D4A017', pct: 100, status: 'NOMINAL' },
+  { label: 'Encryption Layer', value: 'AES-256', icon: Shield, color: '#D4A017', pct: 100, status: 'ACTIVE' },
+  { label: 'Cog. Frequency', value: '433.5 MHz', icon: Radio, color: '#8DB05A', pct: 88, status: 'LOCKED' },
+  { label: 'Edge Latency', value: '12 ms', icon: Clock, color: '#39F07A', pct: 95, status: 'NOMINAL' },
+];
 
 export default function HomePage() {
   const [visibleLogs, setVisibleLogs] = useState<string[]>([]);
@@ -47,14 +45,14 @@ export default function HomePage() {
 
   useEffect(() => {
     setVisibleLogs([logs[0], logs[1], logs[2]]);
-    const interval = setInterval(() => {
-      setLogIndex((i) => {
+    const iv = setInterval(() => {
+      setLogIndex(i => {
         const next = (i + 1) % logs.length;
-        setVisibleLogs((prev) => [...prev, logs[next]].slice(-12));
+        setVisibleLogs(prev => [...prev, logs[next]].slice(-12));
         return next;
       });
     }, 1400);
-    return () => clearInterval(interval);
+    return () => clearInterval(iv);
   }, []);
 
   useEffect(() => {
@@ -62,277 +60,185 @@ export default function HomePage() {
   }, [visibleLogs]);
 
   return (
-    <div style={{ padding: '0', minHeight: '100vh' }}>
+    <div className="page-wrap">
 
-      {/* ── HERO BANNER ── */}
-      <div style={{
-        position: 'relative',
-        height: '280px',
-        overflow: 'hidden',
-        borderBottom: `1px solid ${BORDER_GOLD}`,
-      }}>
-        {/* Hero background image */}
-        <img
-          src="/army_backdrop.png"
-          alt="Army Command Center"
-          style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center top',
-          }}
-        />
-        {/* Overlay gradient */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(135deg, rgba(8,12,5,0.82) 0%, rgba(15,22,8,0.65) 50%, rgba(8,12,5,0.75) 100%)',
-        }} />
-        {/* Gold scanline animation */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(180deg, transparent 0%, rgba(212,160,23,0.04) 50%, transparent 100%)',
-          backgroundSize: '100% 6px',
-        }} />
-
-        {/* Hero content */}
-        <div style={{ position: 'relative', zIndex: 2, padding: '40px 40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{
-              width: '8px', height: '8px', borderRadius: '50%',
-              backgroundColor: GREEN, boxShadow: `0 0 10px ${GREEN}`,
-              animation: 'pulse 2s infinite',
-            }} />
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: OLIVE, letterSpacing: '4px' }}>
-              LIVE · CLASSIFIED · TOP SECRET
-            </span>
-            <div style={{
-              marginLeft: '16px', padding: '3px 10px',
-              background: 'rgba(212,160,23,0.12)',
-              border: '1px solid rgba(212,160,23,0.3)',
-              borderRadius: '3px',
-              fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: GOLD, letterSpacing: '2px',
-            }}>
-              GOVT. OF INDIA · CLASSIFIED
+      {/* ═══ HERO ═══ */}
+      <div className="page-hero scanline">
+        <img src="/army_backdrop.png" alt="Command Center" className="page-hero__img" />
+        <div className="page-hero__overlay" />
+        <div className="page-hero__content">
+          <div className="page-hero__eyebrow">
+            <div className="hero-dot" />
+            <span className="hero-eyebrow-text">LIVE · CLASSIFIED · TOP SECRET</span>
+            <div className="army-badge" style={{ marginLeft: '12px' }}>
+              GOVT. OF INDIA
             </div>
           </div>
-
-          <h1 style={{
-            fontFamily: 'Orbitron, Montserrat, sans-serif',
-            fontWeight: 900,
-            fontSize: '40px',
-            color: '#FFFFFF',
-            lineHeight: 1.1,
-            margin: 0,
-            textShadow: '0 2px 20px rgba(0,0,0,0.8)',
-            letterSpacing: '2px',
-          }}>
-            Global{' '}
-            <span style={{ color: GOLD, textShadow: `0 0 20px rgba(212,160,23,0.6)` }}>
-              Operations
-            </span>{' '}Center
+          <h1 className="page-hero__title">
+            Global <span className="gold">Operations</span> Center
           </h1>
-
-          <p style={{
-            fontFamily: 'Rajdhani, sans-serif',
-            fontSize: '16px', fontWeight: 500,
-            color: '#A0A880', marginTop: '10px', letterSpacing: '1px',
-          }}>
+          <p className="page-hero__sub">
             INDRA NET · Sovereign Defense Communication System · Digital Twin Active
           </p>
-
-          {/* Quick stats row */}
-          <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-            {[
-              { label: 'NODES ONLINE', val: '14' },
-              { label: 'UPTIME', val: '99.8%' },
-              { label: 'THREAT LVL', val: 'ALPHA' },
-              { label: 'SYNC', val: '99.8%' },
-            ].map((s) => (
-              <div key={s.label} style={{
-                background: 'rgba(8,12,5,0.7)',
-                border: `1px solid ${BORDER_GOLD}`,
-                borderRadius: '6px',
-                padding: '8px 14px',
-                backdropFilter: 'blur(8px)',
-              }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '8px', color: MUTED, letterSpacing: '1.5px' }}>{s.label}</div>
-                <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', fontWeight: 700, color: GOLD, marginTop: '2px' }}>{s.val}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
-      <div style={{ padding: '28px 32px', maxWidth: '1600px' }}>
+      {/* ═══ KPI BAR ═══ */}
+      <div style={{ padding: '20px 32px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          {kpis.map((k, i) => (
+            <motion.div
+              key={k.label}
+              className="kpi-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+            >
+              <div className="kpi-value" style={{ color: k.color }}>{k.value}</div>
+              <div className="kpi-label">{k.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ MAIN CONTENT ═══ */}
+      <div className="content-wrap">
 
         {/* Section label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <ChevronRight size={16} color={GOLD} />
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, letterSpacing: '3px' }}>
-            COMMAND DASHBOARD · REAL-TIME OVERVIEW
-          </span>
-          <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${BORDER_GOLD}, transparent)` }} />
+        <div className="section-header" style={{ marginBottom: '16px' }}>
+          <ChevronRight size={14} color="#D4A017" />
+          <span className="section-header__label">Command Dashboard · Real-Time Overview</span>
+          <div className="section-header__line" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Zap size={12} color="#39F07A" />
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#39F07A', letterSpacing: '2px' }}>LIVE</span>
+          </div>
         </div>
 
-        {/* Two column layout */}
+        {/* 2-col: 3D node + health monitor */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
 
           {/* 3D Digital Twin */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            className="panel-gold"
+            initial={{ opacity: 0, x: -24 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            style={{
-              background: BG_CARD,
-              border: `1px solid ${BORDER_GOLD}`,
-              borderRadius: '10px',
-              height: '440px',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 0 30px rgba(212,160,23,0.07)',
-            }}
+            transition={{ duration: 0.6 }}
+            style={{ height: '460px', position: 'relative', overflow: 'hidden', padding: 0 }}
           >
-            {/* Top left label */}
+            {/* Labels */}
             <div style={{
               position: 'absolute', top: '14px', left: '14px', zIndex: 10,
-              fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: GOLD,
-              background: 'rgba(212,160,23,0.1)', padding: '4px 10px', borderRadius: '4px',
-              border: `1px solid rgba(212,160,23,0.25)`, letterSpacing: '2px',
+              display: 'flex', alignItems: 'center', gap: '8px',
             }}>
-              DIGITAL TWIN NODE · LIVE RENDER
+              <div className="army-badge"><Target size={9} /> DIGITAL TWIN · LIVE</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'absolute', top: '14px', right: '14px', zIndex: 10 }}>
-              <Target size={12} color={OLIVE} />
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: OLIVE }}>TRACKING</span>
+              <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#39F07A', boxShadow: '0 0 8px #39F07A', animation: 'pulseDot 2s infinite' }} />
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#39F07A' }}>RENDERING</span>
             </div>
             <div style={{ position: 'absolute', bottom: '14px', left: '14px', zIndex: 10 }}>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#3D4D2A' }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#2A3D1A' }}>
                 INDRA-NODE-PRIMARY · UID: 4F3A-9B2C
               </span>
             </div>
             <DigitalTwinNode />
           </motion.div>
 
-          {/* Health Dashboard */}
+          {/* Health monitor */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+            transition={{ duration: 0.6 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '0' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <Layers size={14} color={GOLD} />
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, letterSpacing: '2px' }}>
-                SYSTEM HEALTH MONITOR
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Layers size={14} color="#D4A017" />
+              <span className="section-header__label">System Health Monitor</span>
             </div>
 
-            {metrics.map((m, i) => (
-              <motion.div
-                key={m.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 + 0.3 }}
-                style={{
-                  background: BG_CARD,
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: '8px',
-                  padding: '14px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Left gold bar */}
-                <div style={{
-                  position: 'absolute', left: 0, top: '15%', bottom: '15%',
-                  width: '2px', background: m.color, borderRadius: '2px',
-                  boxShadow: `0 0 6px ${m.color}`,
-                }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{
-                    width: '40px', height: '40px', borderRadius: '8px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: `${m.color}14`, border: `1px solid ${m.color}33`,
-                    flexShrink: 0,
-                  }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {metrics.map((m, i) => (
+                <motion.div
+                  key={m.label}
+                  className="metric-card"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.09 + 0.2 }}
+                >
+                  <div className="metric-card__left-bar" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
+                  <div className="metric-card__icon" style={{ background: `${m.color}14`, border: `1px solid ${m.color}30` }}>
                     <m.icon size={18} color={m.color} />
                   </div>
-                  <div>
-                    <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: MUTED, letterSpacing: '1px', margin: 0, textTransform: 'uppercase' }}>
-                      {m.label}
-                    </p>
-                    <p style={{ fontFamily: 'Orbitron, monospace', fontSize: '20px', fontWeight: 700, color: m.color, margin: '2px 0 0', lineHeight: 1 }}>
-                      {m.value}
-                    </p>
+                  <div style={{ flex: 1 }}>
+                    <p className="metric-card__label">{m.label}</p>
+                    <p className="metric-card__value" style={{ color: m.color }}>{m.value}</p>
+                    <div className="progress-track" style={{ marginTop: '6px' }}>
+                      <motion.div
+                        className={`progress-fill ${m.color === '#39F07A' ? 'green' : ''}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${m.pct}%` }}
+                        transition={{ duration: 1, delay: i * 0.1 + 0.4 }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: m.color, boxShadow: `0 0 8px ${m.color}` }} />
-                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: m.color }}>{m.status}</span>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="metric-card__status">
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: m.color, boxShadow: `0 0 7px ${m.color}` }} />
+                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: m.color }}>{m.status}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </div>
 
-        {/* Terminal Log */}
+        {/* ═══ TERMINAL ═══ */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          className="terminal"
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5 }}
-          style={{
-            background: BG_CARD,
-            border: `1px solid ${BORDER_GOLD}`,
-            borderRadius: '10px',
-            padding: '20px 24px',
-            boxShadow: '0 0 24px rgba(212,160,23,0.05)',
-          }}
+          transition={{ duration: 0.6, delay: 0.5 }}
         >
-          {/* Terminal top bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <div style={{ width: '11px', height: '11px', borderRadius: '50%', backgroundColor: '#FF4444' }} />
-              <div style={{ width: '11px', height: '11px', borderRadius: '50%', backgroundColor: '#E8820C' }} />
-              <div style={{ width: '11px', height: '11px', borderRadius: '50%', backgroundColor: '#3DFF88' }} />
+          <div className="terminal__topbar">
+            <div className="terminal__dots">
+              <div className="terminal__dot" style={{ background: '#FF4444' }} />
+              <div className="terminal__dot" style={{ background: '#E8820C' }} />
+              <div className="terminal__dot" style={{ background: '#39F07A' }} />
             </div>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: MUTED, letterSpacing: '2px' }}>
-              SECURE COMMAND TERMINAL · ENCRYPTED CH-7
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#4A6A2A', letterSpacing: '2px', marginLeft: '4px' }}>
+              SECURE COMMAND TERMINAL · CH-7 ENCRYPTED
             </span>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: GOLD, boxShadow: `0 0 8px ${GOLD}`, animation: 'pulse 1.5s infinite' }} />
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: GOLD }}>STREAMING</span>
+              <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#D4A017', boxShadow: '0 0 8px #D4A017', animation: 'pulseDot 1.5s infinite' }} />
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: '#D4A017' }}>STREAMING</span>
             </div>
           </div>
-
-          <div ref={logRef} style={{ height: '160px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div className="terminal__body" ref={logRef}>
             <AnimatePresence initial={false}>
               {visibleLogs.map((log, i) => (
                 <motion.div
                   key={`${log}-${i}`}
-                  initial={{ opacity: 0, x: -10 }}
+                  className="terminal__line"
+                  initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}
+                  transition={{ duration: 0.25 }}
                 >
-                  <span style={{ color: 'rgba(212,160,23,0.5)', flexShrink: 0, fontSize: '10px', paddingTop: '1px' }}>
+                  <span className="terminal__timestamp">
                     {new Date().toLocaleTimeString('en-US', { hour12: false })}
                   </span>
                   <span style={{
                     color: log.includes('CLEAR') || log.includes('Operational') || log.includes('Successful')
-                      ? GREEN : CREAM,
+                      ? '#39F07A' : '#C8D8B8',
                   }}>
                     {log}
                   </span>
                 </motion.div>
               ))}
             </AnimatePresence>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: GOLD }}>$</span>
-              <div style={{ width: '9px', height: '17px', backgroundColor: GOLD, animation: 'blink 1s step-end infinite', boxShadow: `0 0 8px ${GOLD}` }} />
+            <div className="terminal__line" style={{ marginTop: '4px' }}>
+              <span className="terminal__timestamp" />
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: '#D4A017', marginRight: '8px' }}>$</span>
+              <div className="terminal__cursor" />
             </div>
           </div>
         </motion.div>
